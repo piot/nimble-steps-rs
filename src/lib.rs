@@ -1,8 +1,8 @@
-pub mod pending_steps;
-
 use std::collections::VecDeque;
 
-type TickId = u32;
+use tick_id::TickId;
+
+pub mod pending_steps;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Step<T> {
@@ -28,14 +28,14 @@ impl<T> Default for Steps<T> {
     }
 }
 
-const TICK_ID_MAX: TickId = u32::MAX as TickId;
+const TICK_ID_MAX: u32 = u32::MAX;
 
 impl<T> Steps<T> {
     pub fn new() -> Self {
         Self {
             steps: VecDeque::new(),
-            expected_read_id: TICK_ID_MAX,
-            expected_write_id: TICK_ID_MAX,
+            expected_read_id: TickId::new(TICK_ID_MAX),
+            expected_write_id: TickId::new(TICK_ID_MAX),
         }
     }
     pub fn new_with_initial_tick(initial_tick_id: TickId) -> Self {
@@ -113,26 +113,26 @@ mod tests {
 
     #[test]
     fn add_step() {
-        let mut steps = Steps::<GameInput>::new_with_initial_tick(23);
+        let mut steps = Steps::<GameInput>::new_with_initial_tick(TickId(23));
         steps.push(Custom(GameInput::MoveHorizontal(-2)));
         assert_eq!(steps.len(), 1);
-        assert_eq!(steps.front_tick_id().unwrap(), 23)
+        assert_eq!(steps.front_tick_id().unwrap().value(), 23)
     }
 
     #[test]
     fn push_and_pop_step() {
-        let mut steps = Steps::<GameInput>::new_with_initial_tick(23);
+        let mut steps = Steps::<GameInput>::new_with_initial_tick(TickId(23));
         steps.push(Custom(GameInput::Jumping(true)));
         steps.push(Custom(GameInput::MoveHorizontal(42)));
         assert_eq!(steps.len(), 2);
-        assert_eq!(steps.front_tick_id().unwrap(), 23);
+        assert_eq!(steps.front_tick_id().unwrap().value(), 23);
         assert_eq!(steps.pop().unwrap().step, Custom(GameInput::Jumping(true)));
-        assert_eq!(steps.front_tick_id(), Some(24 as TickId));
+        assert_eq!(steps.front_tick_id().unwrap().value(), 24);
     }
 
     #[test]
     fn push_and_pop_count() {
-        let mut steps = Steps::<GameInput>::new_with_initial_tick(23);
+        let mut steps = Steps::<GameInput>::new_with_initial_tick(TickId(23));
         steps.push(Custom(GameInput::Jumping(true)));
         steps.push(Custom(GameInput::MoveHorizontal(42)));
         assert_eq!(steps.len(), 2);
@@ -142,21 +142,21 @@ mod tests {
 
     #[test]
     fn push_and_pop_up_to_lower() {
-        let mut steps = Steps::<GameInput>::new_with_initial_tick(23);
+        let mut steps = Steps::<GameInput>::new_with_initial_tick(TickId(23));
         steps.push(Custom(GameInput::Jumping(true)));
         steps.push(Custom(GameInput::MoveHorizontal(42)));
         assert_eq!(steps.len(), 2);
-        steps.pop_up_to(1);
+        steps.pop_up_to(TickId(1));
         assert_eq!(steps.len(), 2);
     }
 
     #[test]
     fn push_and_pop_up_to_equal() {
-        let mut steps = Steps::<GameInput>::new_with_initial_tick(23);
+        let mut steps = Steps::<GameInput>::new_with_initial_tick(TickId(23));
         steps.push(Custom(GameInput::Jumping(true)));
         steps.push(Custom(GameInput::MoveHorizontal(42)));
         assert_eq!(steps.len(), 2);
-        steps.pop_up_to(24);
+        steps.pop_up_to(TickId::new(24));
         assert_eq!(steps.len(), 1);
     }
 }

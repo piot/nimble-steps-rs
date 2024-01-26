@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 discoid = "0.0.1"
+tick-id = "0.0.6"

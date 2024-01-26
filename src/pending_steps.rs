@@ -23,7 +23,7 @@ impl<T> PendingSteps<T> {
     }
 
     pub fn set(&mut self, tick_id: TickId, step: Step<T>) -> Result<(), String> {
-        let index_in_discoid = tick_id - self.front_tick_id;
+        let index_in_discoid = tick_id.value() - self.front_tick_id.value();
         if index_in_discoid >= self.capacity as u32 { // self.steps.capacity()
             return Err("pending_steps: out of scope".to_string());
         }
@@ -36,9 +36,9 @@ impl<T> PendingSteps<T> {
     }
 
     pub fn discard_up_to(&mut self, tick_id: TickId) {
-        let count_in_discoid = tick_id as i32 - self.front_tick_id as i32;
+        let count_in_discoid = tick_id - self.front_tick_id;
         if count_in_discoid < 0 {
-            return
+            return;
         }
         self.steps.discard_front(count_in_discoid as usize);
     }
@@ -72,16 +72,19 @@ mod tests {
 
     #[test]
     fn add_step() {
-        let mut steps = PendingSteps::<GameInput>::new(32, 10);
-        let first_tick_id = 12;
+        let mut steps = PendingSteps::<GameInput>::new(32, TickId(10));
+        let first_tick_id = TickId(12);
         steps.set(first_tick_id, Custom(GameInput::MoveHorizontal(-2))).expect("this should work");
         assert_eq!(steps.front_tick_id(), None);
         assert_eq!(steps.is_empty(), true);
         steps.set(first_tick_id - 2, Custom(GameInput::Jumping(false))).expect("this should work");
         assert_eq!(steps.is_empty(), false);
         let first_jumping_step = steps.pop();
-        assert_eq!(first_jumping_step.tick_id, first_tick_id-2);
-        assert_eq!(steps.front_tick_id().unwrap(), 10);
-        steps.discard_up_to(1);
+        assert_eq!(first_jumping_step.tick_id, first_tick_id - 2);
+        assert_eq!(steps.front_tick_id().unwrap().value(), 10);
+        steps.discard_up_to(first_tick_id);
+        assert_eq!(steps.is_empty(), false);
+        steps.discard_up_to(first_tick_id + 1);
+        assert_eq!(steps.is_empty(), true);
     }
 }
